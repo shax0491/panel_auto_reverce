@@ -66,6 +66,14 @@ health-based failover между несколькими серверами "из
   недоступности и переключение подтверждено; подтвердить, что новый сервер
   после переключения отвечает, с этой же машины не удалось (у неё нет
   hairpin NAT — не баг кода, см. `router/linux-watchdog/live-test.sh`).
+- [x] Панель (ветка `feature/failover-pool` в AdminPanelAZ_new): пулы
+  серверов + синхронизация peer'ов между узлами + токен-эндпоинты для
+  устройств (`/public/failover/{token}/config`, `/status`) — готово,
+  покрыто тестами (backend+frontend), живьём на реальных PL2/LV1 ещё не
+  гонялось. `linux-watchdog/fetch-config.sh` (новое) забирает готовые
+  конфиги с панели по токену, `failover-watchdog.sh` умеет опционально
+  слать туда статус (`PANEL_API_BASE`/`PANEL_DEVICE_TOKEN`) — см.
+  `router/linux-watchdog/README.md`.
 - [x] Android watcher-приложение (AZ AutoSwitch) — собран и прогнан на
   эмуляторе (Android Studio + SDK, Pixel 6/Android 15): UI, разрешения,
   foreground-сервис и health-check-цикл работают live. Настоящий WG Tunnel

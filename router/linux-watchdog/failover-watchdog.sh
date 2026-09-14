@@ -13,13 +13,40 @@
 #   failover-watchdog.sh servers.json /path/to/confs/
 # где /path/to/confs/<name>.conf — уже сгенерированные awg-quick клиентские
 # конфиги под каждый сервер из servers.json (имя файла = поле "name").
+# servers.json/confs можно заполнить вручную (см. servers.example.json) ИЛИ
+# синхронизировать с панелью через fetch-config.sh — сам watchdog не знает
+# и не обязан знать, откуда взялись файлы.
+#
+# Опционально — видимость в самой панели (раздел "Автопереключение"):
+# задайте PANEL_API_BASE и PANEL_DEVICE_TOKEN (те же значения, что и для
+# fetch-config.sh), и watchdog будет после каждой проверки отправлять
+# статус (активный сервер, жив/не жив) на панель. Это НЕ обязательно для
+# работы самого переключения — если панель недоступна (например, сама
+# заблокирована), отправка статуса просто молча пропускается и не мешает
+# продолжать переключаться по факту связи.
 
 set -u
 
 SERVERS_JSON="${1:?Usage: $0 servers.json confs-dir}"
 CONF_DIR="${2:?Usage: $0 servers.json confs-dir}"
+PANEL_API_BASE="${PANEL_API_BASE:-}"
+PANEL_DEVICE_TOKEN="${PANEL_DEVICE_TOKEN:-}"
+DEVICE_LABEL="${DEVICE_LABEL:-$(hostname 2>/dev/null || echo linux-gateway)}"
 
 log() { echo "[$(date '+%F %T')] $*"; }
+
+# Отчёт в панель — лучшее старание (best-effort): любая проблема (панель
+# недоступна/заблокирована, таймаут) молча логируется и игнорируется, чтобы
+# видимость в UI никогда не могла повлиять на сам факт переключения.
+report_status() {
+	[ -n "$PANEL_API_BASE" ] && [ -n "$PANEL_DEVICE_TOKEN" ] || return 0
+	local active="$1" healthy_flag="$2" detail="$3"
+	local url="${PANEL_API_BASE%/}/public/failover/${PANEL_DEVICE_TOKEN}/status"
+	local body
+	body=$(jq -n --arg dl "$DEVICE_LABEL" --arg an "$active" --argjson h "$healthy_flag" --arg d "$detail" \
+		'{device_label: $dl, active_node_name: $an, healthy: $h, detail: $d}')
+	curl -fsS --max-time 5 -X POST -H 'Content-Type: application/json' -d "$body" "$url" >/dev/null 2>&1 &
+}
 
 TARGET=$(jq -r '.health_check.target' "$SERVERS_JSON")
 INTERVAL=$(jq -r '.health_check.interval' "$SERVERS_JSON")
@@ -105,11 +132,14 @@ while true; do
 		consecutive_failures=0
 		[ "$settle" -gt 0 ] && settle=$((settle - 1))
 		log "OK: $current"
+		report_status "$current" true ""
 	elif [ "$settle" -gt 0 ]; then
 		log "Устанавливается: $current (даём время на хендшейк, осталось попыток: $settle)"
+		report_status "$current" false "settling"
 	else
 		consecutive_failures=$((consecutive_failures + 1))
 		log "НЕТ СВЯЗИ ($consecutive_failures/$DOWN_THRESHOLD): $current"
+		report_status "$current" false "no connectivity ($consecutive_failures/$DOWN_THRESHOLD)"
 		if [ "$consecutive_failures" -ge "$DOWN_THRESHOLD" ]; then
 			current_index=$(index_of "$current")
 			next_index=$(((current_index + 1) % ${#NAMES[@]}))
@@ -120,6 +150,7 @@ while true; do
 			current="$next"
 			consecutive_failures=0
 			settle=$DOWN_THRESHOLD
+			report_status "$current" false "switched, settling"
 		fi
 	fi
 	sleep "$INTERVAL"
