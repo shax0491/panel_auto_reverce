@@ -1,0 +1,59 @@
+{
+  "health_check": {
+    "comment": "Пингуем не сам VPN-сервер (ICMP на него отключен), а надёжный публичный адрес СКВОЗЬ туннель — так мы на самом деле проверяем, что сервер форвардит трафик, а не просто что интерфейс поднят.",
+    "target": "1.1.1.1",
+    "interval": 10,
+    "timeout": 3,
+    "down_threshold": 3,
+    "up_threshold": 3
+  },
+  "servers": [
+    {
+      "name": "srv1",
+      "comment": "priority 1 = основной, меньшее число = выше приоритет (как в mwan3)",
+      "priority": 1,
+      "endpoint_host": "203.0.113.10",
+      "endpoint_port": 53443,
+      "private_key": "CLIENT_PRIVATE_KEY_BASE64==",
+      "public_key": "SERVER_PUBLIC_KEY_BASE64==",
+      "preshared_key": "PRESHARED_KEY_BASE64==",
+      "address": "10.29.9.5/32",
+      "allowed_ips": "0.0.0.0/0",
+      "mtu": 1280,
+      "jc": 5,
+      "jmin": 20,
+      "jmax": 50,
+      "s1": 88,
+      "s2": 121,
+      "s3": 41,
+      "s4": 8,
+      "h1": "305419896-305419996",
+      "h2": "892374510-892374610",
+      "h3": "1439827201-1439827301",
+      "h4": "1985043762-1985043862"
+    },
+    {
+      "name": "srv2",
+      "priority": 2,
+      "endpoint_host": "203.0.113.20",
+      "endpoint_port": 53443,
+      "private_key": "CLIENT_PRIVATE_KEY_BASE64==",
+      "public_key": "SERVER2_PUBLIC_KEY_BASE64==",
+      "preshared_key": "PRESHARED_KEY2_BASE64==",
+      "address": "10.29.9.6/32",
+      "allowed_ips": "0.0.0.0/0",
+      "mtu": 1280,
+      "jc": 5,
+      "jmin": 20,
+      "jmax": 50,
+      "s1": 88,
+      "s2": 121,
+      "s3": 41,
+      "s4": 8,
+      "h1": "305419896-305419996",
+      "h2": "892374510-892374610",
+      "h3": "1439827201-1439827301",
+      "h4": "1985043762-1985043862"
+    }
+  ]
+}
