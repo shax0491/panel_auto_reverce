@@ -61,6 +61,16 @@ health-based failover между несколькими серверами "из
 - [x] Router/OpenWrt: генератор конфигов + failover через mwan3 — черновая
   реализация есть, физического роутера под рукой не было, синтаксис
   проверен, живое тестирование — на вашей стороне.
-- [ ] Android watcher-приложение — в работе, см. `android/README.md` про
-  ограничение: на этой машине нет Android SDK/Gradle/JDK, поэтому код
-  написан, но не скомпилирован и не запущен локально.
+- [x] `router/linux-watchdog/`: портируемый watchdog для обычного Linux-шлюза
+  (не OpenWrt) — проверен на реальном сервере AntiZapret. Обнаружение
+  недоступности и переключение подтверждено; подтвердить, что новый сервер
+  после переключения отвечает, с этой же машины не удалось (у неё нет
+  hairpin NAT — не баг кода, см. `router/linux-watchdog/live-test.sh`).
+- [x] Android watcher-приложение (AZ AutoSwitch) — собран и прогнан на
+  эмуляторе (Android Studio + SDK, Pixel 6/Android 15): UI, разрешения,
+  foreground-сервис и health-check-цикл работают live. Настоящий WG Tunnel
+  (GitHub Releases) поставлен рядом — его package/receiver/action совпали
+  один в один с зашитыми в `WgTunnelController.kt`, broadcast доставляется
+  без ошибок. Не проверено: физическое устройство, настоящее переключение
+  туннеля (требует настройки Remote Control в самом WG Tunnel — уже
+  пользовательский шаг). Подробности — `android/README.md`.
